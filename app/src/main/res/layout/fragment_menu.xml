@@ -26,6 +26,7 @@
         android:textAlignment="center" />
 
     <com.chaos.view.PinView
+        android:id="@+id/inputGameCode"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="24dp"
@@ -68,6 +69,7 @@
     <!--  DIVIDER END  -->
 
     <Button
+        android:id="@+id/createGame"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
