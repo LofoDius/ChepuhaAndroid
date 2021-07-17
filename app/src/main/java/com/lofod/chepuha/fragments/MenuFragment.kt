@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
+import com.lofod.chepuha.MainActivity
 import com.lofod.chepuha.R
 import com.lofod.chepuha.databinding.FragmentMenuBinding
 
@@ -29,6 +30,11 @@ class MenuFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         binding.createGame.setOnClickListener {
             userName = binding.username.text.toString()
+
+            with(requireActivity() as MainActivity) {
+                gameCode = binding.inputGameCode.toString()
+                userName = binding.username.toString()
+            }
             //TODO отправка запроса на бэк
         }
 
@@ -41,6 +47,7 @@ class MenuFragment : Fragment() {
                     setTextColor(this@MenuFragment.requireContext().getColor(R.color.input_code_disabled))
                     setLineColor(this@MenuFragment.requireContext().getColor(R.color.input_code_disabled))
                 }
+
                 //TODO запрос
             }
         }

@@ -7,6 +7,9 @@ import com.lofod.chepuha.fragments.MenuFragment
 
 class MainActivity : AppCompatActivity() {
 
+    var gameCode: String = ""
+    var playerName: String = ""
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
