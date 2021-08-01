@@ -25,7 +25,7 @@ class StoryAdapter(private val story: MutableList<Answer>) : RecyclerView.Adapte
     }
 
     class StoryLineViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        var itemPosition = -1
+        private var itemPosition = -1
 
         fun bind(answer: Answer, position: Int) {
             val answerTextView = itemView.findViewById<TextView>(R.id.answer)

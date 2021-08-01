@@ -20,7 +20,7 @@ import org.hildan.krossbow.stomp.conversions.kxserialization.subscribe
 import org.hildan.krossbow.stomp.conversions.kxserialization.withJsonConversions
 import org.hildan.krossbow.stomp.use
 
-class EnterAnswerFragment() : Fragment() {
+class EnterAnswerFragment : Fragment() {
 
     private var _binding: FragmentEnterAnswerBinding? = null
     private val binding get() = _binding!!

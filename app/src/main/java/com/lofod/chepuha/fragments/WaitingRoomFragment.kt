@@ -23,7 +23,7 @@ import org.hildan.krossbow.stomp.conversions.kxserialization.withJsonConversions
 import org.hildan.krossbow.stomp.subscribeText
 import org.hildan.krossbow.stomp.use
 
-class WaitingRoomFragment(val player: Player) : Fragment() {
+class WaitingRoomFragment(private val player: Player) : Fragment() {
 
     private var _binding: FragmentWaitingRoomBinding? = null
     private val binding get() = _binding!!

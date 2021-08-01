@@ -6,7 +6,6 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.lofod.chepuha.R
 import com.lofod.chepuha.adapters.StoryAdapter
 import com.lofod.chepuha.databinding.FragmentStoryBinding
 import com.lofod.chepuha.model.Answer
