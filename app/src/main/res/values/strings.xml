@@ -13,6 +13,8 @@
     <string name="wait_for_answer">Жду смешнявку</string>
     <string name="temp_answer">Ответ</string>
     <string name="label_history">История</string>
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="ws_url_connections">http://localhost:8080/connections/</string>
+    <string name="topic_connections">/topic/connections/</string>
+    <string name="topic_game_started">/topic/gameStarted/</string>
+    <string name="topic_question">/topic/question/</string>
 </resources>

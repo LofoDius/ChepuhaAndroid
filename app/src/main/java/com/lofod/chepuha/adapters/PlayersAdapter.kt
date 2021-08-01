@@ -27,6 +27,11 @@ class PlayersAdapter(private var playerName: String, private var players: Mutabl
         return players.size
     }
 
+    fun addPlayer(player: Player) {
+        players.add(player)
+        notifyDataSetChanged()
+    }
+
     class PlayerViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
 
         fun bind(roomMemberName: String, isShowingAvatar: Boolean) {
