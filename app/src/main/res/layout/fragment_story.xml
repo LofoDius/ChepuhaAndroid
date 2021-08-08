@@ -1,23 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:gravity="center|top">
+    android:gravity="center|top"
+    android:orientation="vertical">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/label_history"
-        android:textSize="64sp"
-        android:fontFamily="@font/pangolin"
-        android:textColor="@color/black"
-        />
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/storyList"
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/storyRefresh"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="match_parent">
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/pangolin"
+            android:text="@string/label_history"
+            android:textColor="@color/black"
+            android:textSize="64sp" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/storyList"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
 </LinearLayout>
