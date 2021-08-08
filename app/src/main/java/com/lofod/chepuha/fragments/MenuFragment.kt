@@ -1,5 +1,6 @@
 package com.lofod.chepuha.fragments
 
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -10,10 +11,16 @@ import com.lofod.chepuha.MainActivity
 import com.lofod.chepuha.R
 import com.lofod.chepuha.databinding.FragmentMenuBinding
 import com.lofod.chepuha.model.Player
+import com.lofod.chepuha.model.request.ConnectToGameRequest
 import com.lofod.chepuha.model.request.StartGameRequest
+import com.lofod.chepuha.model.response.BaseResponse
+import com.lofod.chepuha.model.response.StartGameResponse
 import com.lofod.chepuha.retrofit.API
 import com.lofod.chepuha.retrofit.RetrofitClient
 import com.pranavpandey.android.dynamic.toasts.DynamicToast
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 import retrofit2.create
 import java.util.*
 
@@ -46,17 +53,32 @@ class MenuFragment : Fragment() {
                 return@setOnClickListener
             }
 
-            with(requireActivity() as MainActivity) {
-                gameCode = binding.inputGameCode.toString()
+            val activity = requireActivity() as MainActivity
+            with(activity) {
                 userName = binding.username.toString()
+                player = Player(userName, UUID.randomUUID())
             }
 
-            api.createGame(StartGameRequest(Player(userName, UUID.randomUUID())))
+            api.createGame(StartGameRequest(activity.player)).enqueue(object : Callback<StartGameResponse> {
+                override fun onResponse(call: Call<StartGameResponse>, response: Response<StartGameResponse>) {
+                    if (response.body()!!.code == 0) {
+                        activity.gameCode = response.body()!!.gameCode
+                        activity.openWaitingRoomFragment()
+                    } else
+                        DynamicToast.makeWarning(requireContext(), "Сервер не хочет запускать игру \uD83D\uDE14").show()
+                }
+
+                override fun onFailure(call: Call<StartGameResponse>, t: Throwable) {
+                    DynamicToast.makeWarning(requireContext(), "Почему-то не получилось создать игру \uD83D\uDE14")
+                        .show()
+                }
+            })
         }
 
         binding.inputGameCode.doAfterTextChanged {
             if (it.toString().length == 3) {
                 gameCode = it.toString()
+                userName = binding.username.text.toString()
 
                 with(binding.inputGameCode) {
                     isEnabled = false
@@ -64,7 +86,43 @@ class MenuFragment : Fragment() {
                     setLineColor(this@MenuFragment.requireContext().getColor(R.color.input_code_disabled))
                 }
 
-                //TODO запрос
+                if (userName.isEmpty()) {
+                    DynamicToast.makeError(requireContext(), "А как вас мама называет? \uD83D\uDC36").show()
+                    return@doAfterTextChanged
+                }
+
+                val activity = requireActivity() as MainActivity
+                with(activity) {
+                    gameCode = this@MenuFragment.gameCode
+                    player = Player(this@MenuFragment.userName, UUID.randomUUID())
+                }
+
+                api.connectToGame(ConnectToGameRequest(gameCode, activity.player))
+                    .enqueue(object : Callback<BaseResponse> {
+                        override fun onResponse(call: Call<BaseResponse>, response: Response<BaseResponse>) {
+                            if (response.body()!!.code == 0)
+                                activity.openWaitingRoomFragment()
+                            else {
+                                DynamicToast.makeWarning(
+                                    requireContext(),
+                                    "Есть мнение, шо этот код никому не нужен \uD83D\uDD95"
+                                ).show()
+                                with(binding.inputGameCode) {
+                                    isEnabled = true
+                                    setTextColor(Color.BLACK)
+                                    setLineColor(Color.BLACK)
+                                }
+                            }
+                        }
+
+                        override fun onFailure(call: Call<BaseResponse>, t: Throwable) {
+                            DynamicToast.makeWarning(
+                                requireContext(),
+                                "Шото запросик наш заблудился, А СЕРВЕР ТАК ДАЛЕКО \uD83D\uDE28"
+                            ).show()
+                        }
+
+                    })
             }
         }
     }

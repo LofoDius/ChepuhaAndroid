@@ -13,6 +13,7 @@ class MainActivity : AppCompatActivity() {
 
     var gameCode: String = ""
     var playerName: String = ""
+    lateinit var player: Player
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,7 +33,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun openWaitingRoomFragment(player: Player) {
+    fun openWaitingRoomFragment() {
         val waitingRoomFragment = WaitingRoomFragment.newInstance(player)
         openFragment(waitingRoomFragment)
     }
