@@ -72,7 +72,7 @@ class WaitingRoomFragment(private val player: Player) : Fragment() {
                 override fun onFailure(call: Call<MutableList<Player>>, t: Throwable) {
                     DynamicToast.makeWarning(
                         requireContext(),
-                        "Хз кто в комнате сейчас сидит, \n но если потянуть вниз, то мы еще раз попробуем список получить",
+                        "Хз кто в комнате сейчас сидит, \nно если потянуть вниз, то мы еще раз попробуем список получить",
                         Toast.LENGTH_LONG
                     ).show()
                 }

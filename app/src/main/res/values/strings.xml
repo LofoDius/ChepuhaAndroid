@@ -8,7 +8,7 @@
     <string name="start_game">Начать игру</string>
     <string name="player_icon">Иконка игрока</string>
     <string name="temp_player_name">Test</string>
-    <string name="question">Вопрос</string>
+    <string name="question">Кто?</string>
     <string name="send_answer">Тык</string>
     <string name="wait_for_answer">Жду смешнявку</string>
     <string name="temp_answer">Ответ</string>
