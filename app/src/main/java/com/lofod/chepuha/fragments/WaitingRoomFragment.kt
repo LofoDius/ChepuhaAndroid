@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -12,6 +13,9 @@ import com.lofod.chepuha.R
 import com.lofod.chepuha.adapters.PlayersAdapter
 import com.lofod.chepuha.databinding.FragmentWaitingRoomBinding
 import com.lofod.chepuha.model.Player
+import com.lofod.chepuha.retrofit.API
+import com.lofod.chepuha.retrofit.RetrofitClient
+import com.pranavpandey.android.dynamic.toasts.DynamicToast
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
@@ -22,6 +26,10 @@ import org.hildan.krossbow.stomp.conversions.kxserialization.subscribe
 import org.hildan.krossbow.stomp.conversions.kxserialization.withJsonConversions
 import org.hildan.krossbow.stomp.subscribeText
 import org.hildan.krossbow.stomp.use
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import retrofit2.create
 
 class WaitingRoomFragment(private val player: Player) : Fragment() {
 
@@ -45,8 +53,30 @@ class WaitingRoomFragment(private val player: Player) : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         gameCode = (requireActivity() as MainActivity).gameCode
         binding.gameCode.text = gameCode
-        setupWaitingList(mutableListOf(player))
         lifecycleScope.launch { setupWebSocketConnection() }
+        binding.waitingListRefresh.setOnRefreshListener { getConnectedPlayers() }
+    }
+
+    private fun getConnectedPlayers() {
+        RetrofitClient.getClient().create(API::class.java).getConnectedPlayer(gameCode)
+            .enqueue(object : Callback<MutableList<Player>> {
+                override fun onResponse(call: Call<MutableList<Player>>, response: Response<MutableList<Player>>) {
+                    setupWaitingList(
+                        if (response.body() != null) {
+                            response.body()!!.add(player)
+                            response.body()!!
+                        } else mutableListOf(player)
+                    )
+                }
+
+                override fun onFailure(call: Call<MutableList<Player>>, t: Throwable) {
+                    DynamicToast.makeWarning(
+                        requireContext(),
+                        "Хз кто в комнате сейчас сидит, \n но если потянуть вниз, то мы еще раз попробуем список получить",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            })
     }
 
     private fun setupWaitingList(players: MutableList<Player>) {

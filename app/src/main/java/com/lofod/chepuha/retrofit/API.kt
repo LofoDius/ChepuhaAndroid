@@ -25,7 +25,7 @@ interface API {
     fun connectToGame(@Body request: ConnectToGameRequest): Call<BaseResponse>
 
     @POST("connectedPlayer/{gameCode}")
-    fun getConnectedPlayer(@Path("gameCode") gameCode: String): Call<List<Player>>
+    fun getConnectedPlayer(@Path("gameCode") gameCode: String): Call<MutableList<Player>>
 
     @POST("message")
     fun sendMessage(@Body request: AnswerRequest): Call<BaseResponse>
