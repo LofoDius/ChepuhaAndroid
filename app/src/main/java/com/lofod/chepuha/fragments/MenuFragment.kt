@@ -9,6 +9,13 @@ import androidx.fragment.app.Fragment
 import com.lofod.chepuha.MainActivity
 import com.lofod.chepuha.R
 import com.lofod.chepuha.databinding.FragmentMenuBinding
+import com.lofod.chepuha.model.Player
+import com.lofod.chepuha.model.request.StartGameRequest
+import com.lofod.chepuha.retrofit.API
+import com.lofod.chepuha.retrofit.RetrofitClient
+import com.pranavpandey.android.dynamic.toasts.DynamicToast
+import retrofit2.create
+import java.util.*
 
 class MenuFragment : Fragment() {
 
@@ -17,6 +24,8 @@ class MenuFragment : Fragment() {
 
     private var userName: String = ""
     private var gameCode: String = ""
+
+    private val api = RetrofitClient.getClient().create(API::class.java)
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -31,11 +40,18 @@ class MenuFragment : Fragment() {
         binding.createGame.setOnClickListener {
             userName = binding.username.text.toString()
 
+            // TODO проверить отображение эмодзи
+            if (userName.isEmpty()) {
+                DynamicToast.makeError(requireContext(), "А как вас мама называет? \uD83D\uDC36").show()
+                return@setOnClickListener
+            }
+
             with(requireActivity() as MainActivity) {
                 gameCode = binding.inputGameCode.toString()
                 userName = binding.username.toString()
             }
-            //TODO отправка запроса на бэк
+
+            api.createGame(StartGameRequest(Player(userName, UUID.randomUUID())))
         }
 
         binding.inputGameCode.doAfterTextChanged {
