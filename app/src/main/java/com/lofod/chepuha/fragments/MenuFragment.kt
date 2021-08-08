@@ -80,15 +80,15 @@ class MenuFragment : Fragment() {
                 gameCode = it.toString()
                 userName = binding.username.text.toString()
 
+                if (userName.isEmpty()) {
+                    DynamicToast.makeError(requireContext(), "А как вас мама называет? \uD83D\uDC36").show()
+                    return@doAfterTextChanged
+                }
+
                 with(binding.inputGameCode) {
                     isEnabled = false
                     setTextColor(this@MenuFragment.requireContext().getColor(R.color.input_code_disabled))
                     setLineColor(this@MenuFragment.requireContext().getColor(R.color.input_code_disabled))
-                }
-
-                if (userName.isEmpty()) {
-                    DynamicToast.makeError(requireContext(), "А как вас мама называет? \uD83D\uDC36").show()
-                    return@doAfterTextChanged
                 }
 
                 val activity = requireActivity() as MainActivity
