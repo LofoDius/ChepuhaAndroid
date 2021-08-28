@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.gmail.bishoybasily.stomp.lib.StompClient
 import com.lofod.chepuha.MainActivity
 import com.lofod.chepuha.R
 import com.lofod.chepuha.adapters.PlayersAdapter
@@ -16,21 +17,22 @@ import com.lofod.chepuha.model.Player
 import com.lofod.chepuha.retrofit.API
 import com.lofod.chepuha.retrofit.RetrofitClient
 import com.pranavpandey.android.dynamic.toasts.DynamicToast
+import io.reactivex.disposables.Disposable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.hildan.krossbow.stomp.StompClient
-import org.hildan.krossbow.stomp.conversions.kxserialization.subscribe
-import org.hildan.krossbow.stomp.conversions.kxserialization.withJsonConversions
-import org.hildan.krossbow.stomp.subscribeText
-import org.hildan.krossbow.stomp.use
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
+import okhttp3.OkHttpClient
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import retrofit2.create
+import java.util.concurrent.TimeUnit
 
+@ExperimentalSerializationApi
 class WaitingRoomFragment(private val player: Player) : Fragment() {
 
     private var _binding: FragmentWaitingRoomBinding? = null
@@ -38,6 +40,8 @@ class WaitingRoomFragment(private val player: Player) : Fragment() {
 
     private var _adapter: PlayersAdapter? = null
     private val adapter get() = _adapter!!
+
+    private lateinit var stompConnection: Disposable
 
     private lateinit var gameCode: String
 
@@ -89,25 +93,58 @@ class WaitingRoomFragment(private val player: Player) : Fragment() {
         }
     }
 
+    @ExperimentalSerializationApi
     private suspend fun setupWebSocketConnection() {
         withContext(Dispatchers.IO) {
-            val session = StompClient().connect(getString(R.string.ws_url_connections)).withJsonConversions()
-            session.use { s ->
-                val connectionsSub: Flow<Player> =
-                    s.subscribe(getString(R.string.topic_connections) + gameCode, Player.serializer())
-                connectionsSub.collect { newPlayer ->
-                    adapter.addPlayer(newPlayer)
-                }
+            val httpClient = OkHttpClient.Builder()
+                .readTimeout(10, TimeUnit.SECONDS)
+                .writeTimeout(10, TimeUnit.SECONDS)
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .build()
 
-                val gameStartedSub: Flow<String> = s.subscribeText(getString(R.string.topic_game_started) + gameCode)
-                gameStartedSub.collect { msg ->
-                    if (msg == "Started") {
+            val client = StompClient(httpClient, 100L).apply { url = getString(R.string.ws_url_connections) }
+
+            stompConnection = client.connect().subscribe()
+
+            if (client.join(getString(R.string.topic_connections) + gameCode).subscribe {
+                    val player = Json.decodeFromString<Player>(it)
+                    adapter.addPlayer(player)
+                }.isDisposed) {
+                DynamicToast.makeError(requireContext(), "Вебсокет сыбался!").show()
+            }
+
+
+            if (client.join(getString(R.string.topic_game_started) + gameCode).subscribe {
+                    if (it == "Started") {
                         val activity = requireActivity() as MainActivity
                         activity.openEnterAnswerFragment()
                     }
-                }
+                }.isDisposed) {
+                DynamicToast.makeError(requireContext(), "Вебсокет сыбался!").show()
             }
+
+//            val session = StompClient().connect(getString(R.string.ws_url_connections)).withJsonConversions()
+//            session.use { s ->
+//                val connectionsSub: Flow<Player> =
+//                    s.subscribe(getString(R.string.topic_connections) + gameCode, Player.serializer())
+//                connectionsSub.collect { newPlayer ->
+//                    adapter.addPlayer(newPlayer)
+//                }
+//
+//                val gameStartedSub: Flow<String> = s.subscribeText(getString(R.string.topic_game_started) + gameCode)
+//                gameStartedSub.collect { msg ->
+//                    if (msg == "Started") {
+//                        val activity = requireActivity() as MainActivity
+//                        activity.openEnterAnswerFragment()
+//                    }
+//                }
+//            }
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        stompConnection.dispose()
     }
 
     companion object {

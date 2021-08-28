@@ -24,6 +24,8 @@
         android:backgroundTint="@color/black"
         android:hint="@string/username_hint"
         android:inputType="textCapSentences"
+        android:fontFamily="@font/pangolin"
+        android:textSize="24sp"
         android:textAlignment="center" />
 
     <com.chaos.view.PinView
