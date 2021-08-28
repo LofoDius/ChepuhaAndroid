@@ -93,7 +93,6 @@ class WaitingRoomFragment(private val player: Player) : Fragment() {
         }
     }
 
-    @ExperimentalSerializationApi
     private suspend fun setupWebSocketConnection() {
         withContext(Dispatchers.IO) {
             val httpClient = OkHttpClient.Builder()
