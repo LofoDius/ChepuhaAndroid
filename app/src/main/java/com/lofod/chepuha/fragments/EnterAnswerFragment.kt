@@ -7,8 +7,10 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import com.gmail.bishoybasily.stomp.lib.StompClient
 import com.lofod.chepuha.MainActivity
 import com.lofod.chepuha.R
+import com.lofod.chepuha.StoreManager
 import com.lofod.chepuha.databinding.FragmentEnterAnswerBinding
 import com.lofod.chepuha.model.Answer
 import com.lofod.chepuha.model.request.AnswerRequest
@@ -17,25 +19,28 @@ import com.lofod.chepuha.model.response.QuestionResponse
 import com.lofod.chepuha.retrofit.API
 import com.lofod.chepuha.retrofit.RetrofitClient
 import com.pranavpandey.android.dynamic.toasts.DynamicToast
+import io.reactivex.disposables.Disposable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.flow.collect
-import org.hildan.krossbow.stomp.StompClient
-import org.hildan.krossbow.stomp.conversions.kxserialization.subscribe
-import org.hildan.krossbow.stomp.conversions.kxserialization.withJsonConversions
-import org.hildan.krossbow.stomp.use
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
+import okhttp3.OkHttpClient
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import retrofit2.create
+import java.util.concurrent.TimeUnit
 
+@ExperimentalSerializationApi
 class EnterAnswerFragment : Fragment() {
 
     private var _binding: FragmentEnterAnswerBinding? = null
     private val binding get() = _binding!!
 
     private var questionNumber = 0
+
+    private lateinit var stompConnection: Disposable
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -48,15 +53,16 @@ class EnterAnswerFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         binding.sendAnswer.setOnClickListener {
+            it.isEnabled = false
             val answer = binding.inputAnswer.text.toString()
-            val activity = requireActivity() as MainActivity
             if (answer.isEmpty()) {
                 Toast.makeText(requireContext(), "А где смешнявка?", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
+            val store = StoreManager.getInstance()
             RetrofitClient.getClient().create(API::class.java)
-                .sendMessage(AnswerRequest(Answer(questionNumber, answer, activity.player.name), activity.gameCode))
+                .sendMessage(AnswerRequest(Answer(questionNumber, answer, store.player.name), store.gameCode))
                 .enqueue(object : Callback<BaseResponse> {
                     override fun onResponse(call: Call<BaseResponse>, response: Response<BaseResponse>) {
                         if (response.body()?.code == 0) {
@@ -68,13 +74,15 @@ class EnterAnswerFragment : Fragment() {
                                 requireContext(),
                                 "Ошибочка на серве, хз шо делать, \nно можно еще раз отправить попробовать"
                             ).show()
+
                         }
+                        binding.sendAnswer.isEnabled = true
                     }
 
                     override fun onFailure(call: Call<BaseResponse>, t: Throwable) {
                         DynamicToast.makeWarning(requireContext(), "Ну тут проблемка какая-то образовалась").show()
+                        binding.sendAnswer.isEnabled = true
                     }
-
                 })
         }
         lifecycleScope.launch { setupWebSocketConnection() }
@@ -82,17 +90,24 @@ class EnterAnswerFragment : Fragment() {
 
     private suspend fun setupWebSocketConnection() {
         withContext(Dispatchers.IO) {
-            val session = StompClient().connect(getString(R.string.ws_url_connections)).withJsonConversions()
-            session.use { s ->
-                val gameCode = (requireActivity() as MainActivity).gameCode
+            val httpClient = OkHttpClient.Builder()
+                .readTimeout(10, TimeUnit.SECONDS)
+                .writeTimeout(10, TimeUnit.SECONDS)
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .build()
 
-                val questionSub =
-                    s.subscribe(getString(R.string.topic_question) + gameCode, QuestionResponse.serializer())
-                questionSub.collect { response ->
+            val client = StompClient(httpClient, 100L).apply { url = getString(R.string.ws_url_connections) }
+
+            stompConnection = client.connect().subscribe()
+
+            val store = StoreManager.getInstance()
+            if (client.join(getString(R.string.topic_question) + store.gameCode).subscribe {
+                    val response = Json.decodeFromString<QuestionResponse>(it)
+
                     if (response.question == "game ended") {
                         val activity = requireActivity() as MainActivity
                         activity.openStoryFragment()
-                        return@collect
+                        return@subscribe
                     }
 
                     binding.question.text = response.question
@@ -100,9 +115,36 @@ class EnterAnswerFragment : Fragment() {
                     binding.sendAnswer.visibility = View.VISIBLE
                     questionNumber = response.questionNumber
                     binding.inputAnswer.text.clear()
-                }
+                }.isDisposed) {
+                DynamicToast.makeError(requireContext(), "Вебсокет сыбался!").show()
+                setupWebSocketConnection()
             }
+//            val session = StompClient().connect(getString(R.string.ws_url_connections)).withJsonConversions()
+//            session.use { s ->
+//                val gameCode = (requireActivity() as MainActivity).gameCode
+//
+//                val questionSub =
+//                    s.subscribe(getString(R.string.topic_question) + gameCode, QuestionResponse.serializer())
+//                questionSub.collect { response ->
+//                    if (response.question == "game ended") {
+//                        val activity = requireActivity() as MainActivity
+//                        activity.openStoryFragment()
+//                        return@collect
+//                    }
+//
+//                    binding.question.text = response.question
+//                    binding.inputAnswer.visibility = View.VISIBLE
+//                    binding.sendAnswer.visibility = View.VISIBLE
+//                    questionNumber = response.questionNumber
+//                    binding.inputAnswer.text.clear()
+//                }
+//            }
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        stompConnection.dispose()
     }
 
     companion object {

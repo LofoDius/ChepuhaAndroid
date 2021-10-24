@@ -1,19 +1,16 @@
 package com.lofod.chepuha
 
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.lofod.chepuha.fragments.EnterAnswerFragment
 import com.lofod.chepuha.fragments.MenuFragment
 import com.lofod.chepuha.fragments.StoryFragment
 import com.lofod.chepuha.fragments.WaitingRoomFragment
-import com.lofod.chepuha.model.Player
+import kotlinx.serialization.ExperimentalSerializationApi
 
+@ExperimentalSerializationApi
 class MainActivity : AppCompatActivity() {
-
-    var gameCode: String = ""
-    var playerName: String = ""
-    lateinit var player: Player
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,7 +31,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun openWaitingRoomFragment() {
-        val waitingRoomFragment = WaitingRoomFragment.newInstance(player)
+        val waitingRoomFragment = WaitingRoomFragment.newInstance(StoreManager.getInstance().player)
         openFragment(waitingRoomFragment)
     }
 

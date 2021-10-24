@@ -6,7 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.lofod.chepuha.MainActivity
+import com.lofod.chepuha.StoreManager
 import com.lofod.chepuha.adapters.StoryAdapter
 import com.lofod.chepuha.databinding.FragmentStoryBinding
 import com.lofod.chepuha.model.Answer
@@ -18,7 +18,6 @@ import com.pranavpandey.android.dynamic.toasts.DynamicToast
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import retrofit2.create
 
 class StoryFragment : Fragment() {
 
@@ -40,8 +39,8 @@ class StoryFragment : Fragment() {
     }
 
     private fun getStory() {
-        val activity = requireActivity() as MainActivity
-        RetrofitClient.getClient().create(API::class.java).getStory(StoryRequest(activity.player.id, activity.gameCode))
+        val store = StoreManager.getInstance()
+        RetrofitClient.getClient().create(API::class.java).getStory(StoryRequest(store.player.id, store.gameCode))
             .enqueue(object : Callback<StoryResponse> {
                 override fun onResponse(call: Call<StoryResponse>, response: Response<StoryResponse>) {
                     if (response.body() != null) {
@@ -52,10 +51,12 @@ class StoryFragment : Fragment() {
                             "Серв прислал пустой ответ\nСкорее всего, разраб - долбаеб"
                         ).show()
                     }
+                    binding.storyRefresh.isRefreshing = false
                 }
 
                 override fun onFailure(call: Call<StoryResponse>, t: Throwable) {
                     DynamicToast.makeWarning(requireContext(), """Запрос ушел за хлебом и не вернулся 🤣""").show()
+                    binding.storyRefresh.isRefreshing = false
                 }
 
             })

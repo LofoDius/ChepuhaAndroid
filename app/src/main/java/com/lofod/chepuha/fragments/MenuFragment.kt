@@ -9,6 +9,7 @@ import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
 import com.lofod.chepuha.MainActivity
 import com.lofod.chepuha.R
+import com.lofod.chepuha.StoreManager
 import com.lofod.chepuha.databinding.FragmentMenuBinding
 import com.lofod.chepuha.model.Player
 import com.lofod.chepuha.model.request.ConnectToGameRequest
@@ -18,19 +19,17 @@ import com.lofod.chepuha.model.response.StartGameResponse
 import com.lofod.chepuha.retrofit.API
 import com.lofod.chepuha.retrofit.RetrofitClient
 import com.pranavpandey.android.dynamic.toasts.DynamicToast
+import kotlinx.serialization.ExperimentalSerializationApi
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import retrofit2.create
 import java.util.*
 
+@ExperimentalSerializationApi
 class MenuFragment : Fragment() {
 
     private var _binding: FragmentMenuBinding? = null
     private val binding get() = _binding!!
-
-    private var userName: String = ""
-    private var gameCode: String = ""
 
     private val api = RetrofitClient.getClient().create(API::class.java)
 
@@ -45,7 +44,7 @@ class MenuFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         binding.createGame.setOnClickListener {
-            userName = binding.username.text.toString()
+            val userName = binding.username.text.toString()
 
             // TODO проверить отображение эмодзи
             if (userName.isEmpty()) {
@@ -53,16 +52,17 @@ class MenuFragment : Fragment() {
                 return@setOnClickListener
             }
 
-            val activity = requireActivity() as MainActivity
-            with(activity) {
-                userName = binding.username.toString()
-                player = Player(userName, UUID.randomUUID())
+            val store = StoreManager.getInstance()
+            with(store) {
+                this.userName = binding.username.toString()
+                player = Player(this.userName, UUID.randomUUID())
             }
 
-            api.createGame(StartGameRequest(activity.player)).enqueue(object : Callback<StartGameResponse> {
+            val activity = requireActivity() as MainActivity
+            api.createGame(StartGameRequest(store.player)).enqueue(object : Callback<StartGameResponse> {
                 override fun onResponse(call: Call<StartGameResponse>, response: Response<StartGameResponse>) {
                     if (response.body()!!.code == 0) {
-                        activity.gameCode = response.body()!!.gameCode
+                        store.gameCode = response.body()!!.gameCode
                         activity.openWaitingRoomFragment()
                     } else
                         DynamicToast.makeWarning(requireContext(), "Сервер не хочет запускать игру \uD83D\uDE14").show()
@@ -77,8 +77,8 @@ class MenuFragment : Fragment() {
 
         binding.inputGameCode.doAfterTextChanged {
             if (it.toString().length == 3) {
-                gameCode = it.toString()
-                userName = binding.username.text.toString()
+                val gameCode = it.toString()
+                val userName = binding.username.text.toString()
 
                 if (userName.isEmpty()) {
                     DynamicToast.makeError(requireContext(), "А как вас мама называет? \uD83D\uDC36").show()
@@ -91,13 +91,14 @@ class MenuFragment : Fragment() {
                     setLineColor(this@MenuFragment.requireContext().getColor(R.color.input_code_disabled))
                 }
 
-                val activity = requireActivity() as MainActivity
-                with(activity) {
-                    gameCode = this@MenuFragment.gameCode
-                    player = Player(this@MenuFragment.userName, UUID.randomUUID())
+                val store = StoreManager.getInstance()
+                with(store) {
+                    this.gameCode = gameCode
+                    player = Player(userName, UUID.randomUUID())
                 }
 
-                api.connectToGame(ConnectToGameRequest(gameCode, activity.player))
+                val activity = requireActivity() as MainActivity
+                api.connectToGame(ConnectToGameRequest(gameCode, store.player))
                     .enqueue(object : Callback<BaseResponse> {
                         override fun onResponse(call: Call<BaseResponse>, response: Response<BaseResponse>) {
                             if (response.body()!!.code == 0)

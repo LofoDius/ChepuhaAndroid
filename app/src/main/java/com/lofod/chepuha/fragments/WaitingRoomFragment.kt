@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.gmail.bishoybasily.stomp.lib.StompClient
 import com.lofod.chepuha.MainActivity
 import com.lofod.chepuha.R
+import com.lofod.chepuha.StoreManager
 import com.lofod.chepuha.adapters.PlayersAdapter
 import com.lofod.chepuha.databinding.FragmentWaitingRoomBinding
 import com.lofod.chepuha.model.Player
@@ -19,8 +20,6 @@ import com.lofod.chepuha.retrofit.RetrofitClient
 import com.pranavpandey.android.dynamic.toasts.DynamicToast
 import io.reactivex.disposables.Disposable
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -43,8 +42,6 @@ class WaitingRoomFragment(private val player: Player) : Fragment() {
 
     private lateinit var stompConnection: Disposable
 
-    private lateinit var gameCode: String
-
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -55,13 +52,12 @@ class WaitingRoomFragment(private val player: Player) : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        gameCode = (requireActivity() as MainActivity).gameCode
-        binding.gameCode.text = gameCode
         lifecycleScope.launch { setupWebSocketConnection() }
         binding.waitingListRefresh.setOnRefreshListener { getConnectedPlayers() }
     }
 
     private fun getConnectedPlayers() {
+        val gameCode = StoreManager.getInstance().gameCode
         RetrofitClient.getClient().create(API::class.java).getConnectedPlayer(gameCode)
             .enqueue(object : Callback<MutableList<Player>> {
                 override fun onResponse(call: Call<MutableList<Player>>, response: Response<MutableList<Player>>) {
@@ -71,6 +67,7 @@ class WaitingRoomFragment(private val player: Player) : Fragment() {
                             response.body()!!
                         } else mutableListOf(player)
                     )
+                    binding.waitingListRefresh.isRefreshing = false
                 }
 
                 override fun onFailure(call: Call<MutableList<Player>>, t: Throwable) {
@@ -79,13 +76,13 @@ class WaitingRoomFragment(private val player: Player) : Fragment() {
                         "Хз кто в комнате сейчас сидит, \nно если потянуть вниз, то мы еще раз попробуем список получить",
                         Toast.LENGTH_LONG
                     ).show()
+                    binding.waitingListRefresh.isRefreshing = false
                 }
             })
     }
 
     private fun setupWaitingList(players: MutableList<Player>) {
-        val activity = requireActivity() as MainActivity
-        _adapter = PlayersAdapter(activity.playerName, players)
+        _adapter = PlayersAdapter(StoreManager.getInstance().userName, players)
 
         with(binding.waitingList) {
             layoutManager = LinearLayoutManager(requireContext())
@@ -105,21 +102,24 @@ class WaitingRoomFragment(private val player: Player) : Fragment() {
 
             stompConnection = client.connect().subscribe()
 
-            if (client.join(getString(R.string.topic_connections) + gameCode).subscribe {
+            val store = StoreManager.getInstance()
+
+            if (client.join(getString(R.string.topic_connections) + store.gameCode).subscribe {
                     val player = Json.decodeFromString<Player>(it)
                     adapter.addPlayer(player)
                 }.isDisposed) {
                 DynamicToast.makeError(requireContext(), "Вебсокет сыбался!").show()
+                setupWebSocketConnection()
             }
 
-
-            if (client.join(getString(R.string.topic_game_started) + gameCode).subscribe {
+            if (client.join(getString(R.string.topic_game_started) + store.gameCode).subscribe {
                     if (it == "Started") {
                         val activity = requireActivity() as MainActivity
                         activity.openEnterAnswerFragment()
                     }
                 }.isDisposed) {
                 DynamicToast.makeError(requireContext(), "Вебсокет сыбался!").show()
+                setupWebSocketConnection()
             }
 
 //            val session = StompClient().connect(getString(R.string.ws_url_connections)).withJsonConversions()
