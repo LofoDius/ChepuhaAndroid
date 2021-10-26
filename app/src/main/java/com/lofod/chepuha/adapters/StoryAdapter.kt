@@ -1,11 +1,11 @@
 package com.lofod.chepuha.adapters
 
-import android.content.Context
 import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.recyclerview.widget.RecyclerView
 import com.lofod.chepuha.R
@@ -43,7 +43,8 @@ class StoryAdapter(private val story: MutableList<Answer>) : RecyclerView.Adapte
                     author,
                     AppCompatResources.getDrawable(context, R.drawable.ic_info_toast),
                     Color.WHITE,
-                    Color.valueOf(166F, 200F, 227F).toArgb()
+                    Color.valueOf(166F, 200F, 227F).toArgb(),
+                    Toast.LENGTH_SHORT
                 ).show()
                 true
             }

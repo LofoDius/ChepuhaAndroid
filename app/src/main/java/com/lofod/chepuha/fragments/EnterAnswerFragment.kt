@@ -20,9 +20,7 @@ import com.lofod.chepuha.retrofit.API
 import com.lofod.chepuha.retrofit.RetrofitClient
 import com.pranavpandey.android.dynamic.toasts.DynamicToast
 import io.reactivex.disposables.Disposable
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
@@ -42,6 +40,8 @@ class EnterAnswerFragment : Fragment() {
 
     private lateinit var stompConnection: Disposable
 
+    private var isWaitingNextQuestion = false
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -54,6 +54,8 @@ class EnterAnswerFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         binding.sendAnswer.setOnClickListener {
             it.isEnabled = false
+            isWaitingNextQuestion = true
+
             val answer = binding.inputAnswer.text.toString()
             if (answer.isEmpty()) {
                 Toast.makeText(requireContext(), "А где смешнявка?", Toast.LENGTH_SHORT).show()
@@ -62,13 +64,26 @@ class EnterAnswerFragment : Fragment() {
 
             val store = StoreManager.getInstance()
             RetrofitClient.getClient().create(API::class.java)
-                .sendMessage(AnswerRequest(Answer(questionNumber, answer, store.player.name), store.gameCode))
+                .sendMessage(
+                    AnswerRequest(
+                        Answer(questionNumber, answer, store.player.name),
+                        store.gameCode
+                    )
+                )
                 .enqueue(object : Callback<BaseResponse> {
-                    override fun onResponse(call: Call<BaseResponse>, response: Response<BaseResponse>) {
+                    override fun onResponse(
+                        call: Call<BaseResponse>,
+                        response: Response<BaseResponse>
+                    ) {
+                        val mainActivity = activity ?: return
+
                         if (response.body()?.code == 0) {
-                            binding.inputAnswer.visibility = View.INVISIBLE
-                            binding.sendAnswer.visibility = View.INVISIBLE
-                            binding.question.text = """Ждем ответики других игроков 💤"""
+                            runBlocking { delay(100) }
+                            if (isWaitingNextQuestion) {
+                                binding.inputAnswer.visibility = View.INVISIBLE
+                                binding.sendAnswer.visibility = View.INVISIBLE
+                                binding.question.text = """Ждем ответики других игроков 💤"""
+                            }
                         } else {
                             DynamicToast.makeWarning(
                                 requireContext(),
@@ -76,12 +91,19 @@ class EnterAnswerFragment : Fragment() {
                             ).show()
 
                         }
-                        binding.sendAnswer.isEnabled = true
+                        mainActivity.runOnUiThread {
+                            binding.sendAnswer.isEnabled = true
+                        }
                     }
 
                     override fun onFailure(call: Call<BaseResponse>, t: Throwable) {
-                        DynamicToast.makeWarning(requireContext(), "Ну тут проблемка какая-то образовалась").show()
-                        binding.sendAnswer.isEnabled = true
+                        requireActivity().runOnUiThread {
+                            DynamicToast.makeWarning(
+                                requireContext(),
+                                "Ну тут проблемка какая-то образовалась"
+                            ).show()
+                            binding.sendAnswer.isEnabled = true
+                        }
                     }
                 })
         }
@@ -96,25 +118,29 @@ class EnterAnswerFragment : Fragment() {
                 .connectTimeout(10, TimeUnit.SECONDS)
                 .build()
 
-            val client = StompClient(httpClient, 100L).apply { url = getString(R.string.ws_url_connections) }
+            val client =
+                StompClient(httpClient, 100L).apply { url = getString(R.string.ws_url_connections) }
 
             stompConnection = client.connect().subscribe()
 
             val store = StoreManager.getInstance()
             if (client.join(getString(R.string.topic_question) + store.gameCode).subscribe {
+                    isWaitingNextQuestion = false
                     val response = Json.decodeFromString<QuestionResponse>(it)
 
-                    if (response.question == "game ended") {
-                        val activity = requireActivity() as MainActivity
-                        activity.openStoryFragment()
-                        return@subscribe
-                    }
+                    val activity = requireActivity() as MainActivity
+                    activity.runOnUiThread {
+                        if (response.question == "game ended") {
+                            activity.openStoryFragment()
+                            return@runOnUiThread
+                        }
 
-                    binding.question.text = response.question
-                    binding.inputAnswer.visibility = View.VISIBLE
-                    binding.sendAnswer.visibility = View.VISIBLE
-                    questionNumber = response.questionNumber
-                    binding.inputAnswer.text.clear()
+                        binding.question.text = response.question
+                        binding.inputAnswer.visibility = View.VISIBLE
+                        binding.sendAnswer.visibility = View.VISIBLE
+                        questionNumber = response.questionNumber
+                        binding.inputAnswer.text.clear()
+                    }
                 }.isDisposed) {
                 DynamicToast.makeError(requireContext(), "Вебсокет сыбался!").show()
                 setupWebSocketConnection()

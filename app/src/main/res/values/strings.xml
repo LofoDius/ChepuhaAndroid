@@ -4,7 +4,7 @@
     <string name="divider_or">или</string>
     <string name="create_game">Создать игру</string>
     <string name="waiting_for_players">Ожидание игроков</string>
-    <string name="game_code">Код:</string>
+    <string name="game_code">Код: %1$s</string>
     <string name="start_game">Начать игру</string>
     <string name="player_icon">Иконка игрока</string>
     <string name="temp_player_name">Test</string>
@@ -14,7 +14,8 @@
     <string name="temp_answer">Ответ</string>
     <string name="label_history">История</string>
     <string name="ws_url_connections">ws://158.101.183.197:8080/connections</string>
-    <string name="topic_connections">/topic/connections/</string>
+    <string name="topic_connectedPlayers">/topic/connectedPlayers/</string>
     <string name="topic_game_started">/topic/gameStarted/</string>
     <string name="topic_question">/topic/question/</string>
+    <string name="enter_code_field">Поле ввода кода</string>
 </resources>

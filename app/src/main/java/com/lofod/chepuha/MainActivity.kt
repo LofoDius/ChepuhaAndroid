@@ -31,7 +31,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun openWaitingRoomFragment() {
-        val waitingRoomFragment = WaitingRoomFragment.newInstance(StoreManager.getInstance().player)
+        val waitingRoomFragment = WaitingRoomFragment.newInstance()
         openFragment(waitingRoomFragment)
     }
 

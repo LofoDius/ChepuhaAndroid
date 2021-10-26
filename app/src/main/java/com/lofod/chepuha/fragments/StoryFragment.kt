@@ -40,23 +40,34 @@ class StoryFragment : Fragment() {
 
     private fun getStory() {
         val store = StoreManager.getInstance()
-        RetrofitClient.getClient().create(API::class.java).getStory(StoryRequest(store.player.id, store.gameCode))
+        RetrofitClient.getClient().create(API::class.java)
+            .getStory(StoryRequest(store.player.id, store.gameCode))
             .enqueue(object : Callback<StoryResponse> {
-                override fun onResponse(call: Call<StoryResponse>, response: Response<StoryResponse>) {
-                    if (response.body() != null) {
-                        setupStoryAdapter(response.body()!!.story.answers as MutableList<Answer>)
-                    } else {
-                        DynamicToast.makeWarning(
-                            requireContext(),
-                            "Серв прислал пустой ответ\nСкорее всего, разраб - долбаеб"
-                        ).show()
+                override fun onResponse(
+                    call: Call<StoryResponse>,
+                    response: Response<StoryResponse>
+                ) {
+                    requireActivity().runOnUiThread {
+                        if (response.body() != null && response.body()!!.code != 1) {
+                            setupStoryAdapter(response.body()!!.story.answers as MutableList<Answer>)
+                        } else {
+                            DynamicToast.makeWarning(
+                                requireContext(),
+                                "Серв прислал пустой ответ\nСкорее всего, разраб - долбаеб"
+                            ).show()
+                        }
+                        binding.storyRefresh.isRefreshing = false
                     }
-                    binding.storyRefresh.isRefreshing = false
                 }
 
                 override fun onFailure(call: Call<StoryResponse>, t: Throwable) {
-                    DynamicToast.makeWarning(requireContext(), """Запрос ушел за хлебом и не вернулся 🤣""").show()
-                    binding.storyRefresh.isRefreshing = false
+                    requireActivity().runOnUiThread {
+                        DynamicToast.makeWarning(
+                            requireContext(),
+                            """Запрос ушел за хлебом и не вернулся 🤣"""
+                        ).show()
+                        binding.storyRefresh.isRefreshing = false
+                    }
                 }
 
             })

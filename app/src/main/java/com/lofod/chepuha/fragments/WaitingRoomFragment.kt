@@ -15,6 +15,7 @@ import com.lofod.chepuha.StoreManager
 import com.lofod.chepuha.adapters.PlayersAdapter
 import com.lofod.chepuha.databinding.FragmentWaitingRoomBinding
 import com.lofod.chepuha.model.Player
+import com.lofod.chepuha.model.response.BaseResponse
 import com.lofod.chepuha.retrofit.API
 import com.lofod.chepuha.retrofit.RetrofitClient
 import com.pranavpandey.android.dynamic.toasts.DynamicToast
@@ -32,7 +33,7 @@ import retrofit2.Response
 import java.util.concurrent.TimeUnit
 
 @ExperimentalSerializationApi
-class WaitingRoomFragment(private val player: Player) : Fragment() {
+class WaitingRoomFragment() : Fragment() {
 
     private var _binding: FragmentWaitingRoomBinding? = null
     private val binding get() = _binding!!
@@ -52,18 +53,44 @@ class WaitingRoomFragment(private val player: Player) : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        val gameCode = StoreManager.getInstance().gameCode
+        binding.gameCode.text = getString(R.string.game_code, gameCode)
         lifecycleScope.launch { setupWebSocketConnection() }
         binding.waitingListRefresh.setOnRefreshListener { getConnectedPlayers() }
+        getConnectedPlayers()
+
+        if (!StoreManager.getInstance().isStarter) {
+            binding.startGame.visibility = View.INVISIBLE
+        }
+
+        binding.startGame.setOnClickListener {
+            RetrofitClient.getClient().create(API::class.java).startGame(gameCode)
+                .enqueue(object : Callback<BaseResponse> {
+                    override fun onResponse(
+                        call: Call<BaseResponse>,
+                        response: Response<BaseResponse>
+                    ) {
+                    }
+
+                    override fun onFailure(call: Call<BaseResponse>, t: Throwable) {
+                    }
+
+                })
+        }
     }
 
     private fun getConnectedPlayers() {
         val gameCode = StoreManager.getInstance().gameCode
-        RetrofitClient.getClient().create(API::class.java).getConnectedPlayer(gameCode)
+        val player = StoreManager.getInstance().player
+
+        RetrofitClient.getClient().create(API::class.java).getConnectedPlayers(gameCode)
             .enqueue(object : Callback<MutableList<Player>> {
-                override fun onResponse(call: Call<MutableList<Player>>, response: Response<MutableList<Player>>) {
+                override fun onResponse(
+                    call: Call<MutableList<Player>>,
+                    response: Response<MutableList<Player>>
+                ) {
                     setupWaitingList(
                         if (response.body() != null) {
-                            response.body()!!.add(player)
                             response.body()!!
                         } else mutableListOf(player)
                     )
@@ -82,7 +109,7 @@ class WaitingRoomFragment(private val player: Player) : Fragment() {
     }
 
     private fun setupWaitingList(players: MutableList<Player>) {
-        _adapter = PlayersAdapter(StoreManager.getInstance().userName, players)
+        _adapter = PlayersAdapter(StoreManager.getInstance().player.name, players)
 
         with(binding.waitingList) {
             layoutManager = LinearLayoutManager(requireContext())
@@ -98,24 +125,29 @@ class WaitingRoomFragment(private val player: Player) : Fragment() {
                 .connectTimeout(10, TimeUnit.SECONDS)
                 .build()
 
-            val client = StompClient(httpClient, 100L).apply { url = getString(R.string.ws_url_connections) }
+            val client =
+                StompClient(httpClient, 100L).apply { url = getString(R.string.ws_url_connections) }
 
             stompConnection = client.connect().subscribe()
 
             val store = StoreManager.getInstance()
 
-            if (client.join(getString(R.string.topic_connections) + store.gameCode).subscribe {
+            if (client.join(getString(R.string.topic_connectedPlayers) + store.gameCode).subscribe {
                     val player = Json.decodeFromString<Player>(it)
-                    adapter.addPlayer(player)
+                    (requireActivity() as MainActivity).runOnUiThread {
+                        adapter.addPlayer(player)
+                    }
                 }.isDisposed) {
                 DynamicToast.makeError(requireContext(), "Вебсокет сыбался!").show()
                 setupWebSocketConnection()
             }
 
             if (client.join(getString(R.string.topic_game_started) + store.gameCode).subscribe {
-                    if (it == "Started") {
+                    if (it == "\nStarted") {
                         val activity = requireActivity() as MainActivity
-                        activity.openEnterAnswerFragment()
+                        activity.runOnUiThread {
+                            activity.openEnterAnswerFragment()
+                        }
                     }
                 }.isDisposed) {
                 DynamicToast.makeError(requireContext(), "Вебсокет сыбался!").show()
@@ -148,7 +180,7 @@ class WaitingRoomFragment(private val player: Player) : Fragment() {
 
     companion object {
         @JvmStatic
-        fun newInstance(player: Player) = WaitingRoomFragment(player)
+        fun newInstance() = WaitingRoomFragment()
     }
 
 }

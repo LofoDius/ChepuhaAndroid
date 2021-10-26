@@ -43,6 +43,7 @@ class MenuFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        // TODO дизейблить кнопку, если не введено имя
         binding.createGame.setOnClickListener {
             val userName = binding.username.text.toString()
 
@@ -54,8 +55,9 @@ class MenuFragment : Fragment() {
 
             val store = StoreManager.getInstance()
             with(store) {
-                this.userName = binding.username.toString()
+                this.userName = binding.username.text.toString()
                 player = Player(this.userName, UUID.randomUUID())
+                isStarter = true
             }
 
             val activity = requireActivity() as MainActivity
@@ -95,6 +97,7 @@ class MenuFragment : Fragment() {
                 with(store) {
                     this.gameCode = gameCode
                     player = Player(userName, UUID.randomUUID())
+                    isStarter = false
                 }
 
                 val activity = requireActivity() as MainActivity
