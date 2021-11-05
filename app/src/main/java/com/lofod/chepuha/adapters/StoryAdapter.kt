@@ -33,20 +33,23 @@ class StoryAdapter(private val story: MutableList<Answer>) : RecyclerView.Adapte
 
         fun bind(answer: Answer) {
             val answerTextView = itemView.findViewById<TextView>(R.id.answer)
-            answerTextView.text = answer.text
+            answerTextView.text = when(answer.questionNumber) {
+                5 -> "Им сказали: ${answer.text}"
+                6 -> "И закончилось все ${answer.text}"
+                else -> answer.text
+            }
             author = answer.author
 
-            itemView.setOnLongClickListener {
+            itemView.setOnClickListener {
                 val context = itemView.context
                 DynamicToast.make(
                     context,
-                    author,
+                    "Автор: $author",
                     AppCompatResources.getDrawable(context, R.drawable.ic_info_toast),
                     Color.WHITE,
-                    Color.valueOf(166F, 200F, 227F).toArgb(),
+                    Color.BLACK,
                     Toast.LENGTH_SHORT
                 ).show()
-                true
             }
         }
     }

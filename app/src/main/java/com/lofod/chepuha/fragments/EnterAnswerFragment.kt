@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.gmail.bishoybasily.stomp.lib.StompClient
@@ -52,13 +53,18 @@ class EnterAnswerFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        binding.sendAnswer.isEnabled = false
         binding.sendAnswer.setOnClickListener {
             it.isEnabled = false
             isWaitingNextQuestion = true
 
             val answer = binding.inputAnswer.text.toString()
             if (answer.isEmpty()) {
-                Toast.makeText(requireContext(), "А где смешнявка?", Toast.LENGTH_SHORT).show()
+                DynamicToast.makeWarning(
+                    requireContext(),
+                    "А где смешнявка? \uD83D\uDE21",
+                    Toast.LENGTH_SHORT
+                ).show()
                 return@setOnClickListener
             }
 
@@ -107,6 +113,10 @@ class EnterAnswerFragment : Fragment() {
                     }
                 })
         }
+
+        binding.inputAnswer.doAfterTextChanged {
+            binding.sendAnswer.isEnabled = it.toString().isNotEmpty()
+        }
         lifecycleScope.launch { setupWebSocketConnection() }
     }
 
@@ -145,26 +155,6 @@ class EnterAnswerFragment : Fragment() {
                 DynamicToast.makeError(requireContext(), "Вебсокет сыбался!").show()
                 setupWebSocketConnection()
             }
-//            val session = StompClient().connect(getString(R.string.ws_url_connections)).withJsonConversions()
-//            session.use { s ->
-//                val gameCode = (requireActivity() as MainActivity).gameCode
-//
-//                val questionSub =
-//                    s.subscribe(getString(R.string.topic_question) + gameCode, QuestionResponse.serializer())
-//                questionSub.collect { response ->
-//                    if (response.question == "game ended") {
-//                        val activity = requireActivity() as MainActivity
-//                        activity.openStoryFragment()
-//                        return@collect
-//                    }
-//
-//                    binding.question.text = response.question
-//                    binding.inputAnswer.visibility = View.VISIBLE
-//                    binding.sendAnswer.visibility = View.VISIBLE
-//                    questionNumber = response.questionNumber
-//                    binding.inputAnswer.text.clear()
-//                }
-//            }
         }
     }
 

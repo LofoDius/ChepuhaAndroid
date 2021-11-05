@@ -18,4 +18,5 @@
     <string name="topic_game_started">/topic/gameStarted/</string>
     <string name="topic_question">/topic/question/</string>
     <string name="enter_code_field">Поле ввода кода</string>
+    <string name="shared_preferences_file_name">chepuha.userdata</string>
 </resources>

@@ -43,13 +43,13 @@ class MenuFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        // TODO дизейблить кнопку, если не введено имя
+        binding.createGame.isEnabled = false
         binding.createGame.setOnClickListener {
             val userName = binding.username.text.toString()
 
-            // TODO проверить отображение эмодзи
             if (userName.isEmpty()) {
-                DynamicToast.makeError(requireContext(), "А как вас мама называет? \uD83D\uDC36").show()
+                DynamicToast.makeError(requireContext(), "А как вас мама называет? \uD83D\uDC36")
+                    .show()
                 return@setOnClickListener
             }
 
@@ -61,20 +61,30 @@ class MenuFragment : Fragment() {
             }
 
             val activity = requireActivity() as MainActivity
-            api.createGame(StartGameRequest(store.player)).enqueue(object : Callback<StartGameResponse> {
-                override fun onResponse(call: Call<StartGameResponse>, response: Response<StartGameResponse>) {
-                    if (response.body()!!.code == 0) {
-                        store.gameCode = response.body()!!.gameCode
-                        activity.openWaitingRoomFragment()
-                    } else
-                        DynamicToast.makeWarning(requireContext(), "Сервер не хочет запускать игру \uD83D\uDE14").show()
-                }
+            api.createGame(StartGameRequest(store.player))
+                .enqueue(object : Callback<StartGameResponse> {
+                    override fun onResponse(
+                        call: Call<StartGameResponse>,
+                        response: Response<StartGameResponse>
+                    ) {
+                        if (response.body()!!.code == 0) {
+                            store.gameCode = response.body()!!.gameCode
+                            activity.openWaitingRoomFragment()
+                        } else
+                            DynamicToast.makeWarning(
+                                requireContext(),
+                                "Сервер не хочет запускать игру \uD83D\uDE14"
+                            ).show()
+                    }
 
-                override fun onFailure(call: Call<StartGameResponse>, t: Throwable) {
-                    DynamicToast.makeWarning(requireContext(), "Почему-то не получилось создать игру \uD83D\uDE14")
-                        .show()
-                }
-            })
+                    override fun onFailure(call: Call<StartGameResponse>, t: Throwable) {
+                        DynamicToast.makeWarning(
+                            requireContext(),
+                            "Почему-то не получилось создать игру \uD83D\uDE14"
+                        )
+                            .show()
+                    }
+                })
         }
 
         binding.inputGameCode.doAfterTextChanged {
@@ -83,27 +93,38 @@ class MenuFragment : Fragment() {
                 val userName = binding.username.text.toString()
 
                 if (userName.isEmpty()) {
-                    DynamicToast.makeError(requireContext(), "А как вас мама называет? \uD83D\uDC36").show()
+                    DynamicToast.makeError(
+                        requireContext(),
+                        "А как вас мама называет? \uD83D\uDC36"
+                    ).show()
                     return@doAfterTextChanged
                 }
 
                 with(binding.inputGameCode) {
                     isEnabled = false
-                    setTextColor(this@MenuFragment.requireContext().getColor(R.color.input_code_disabled))
-                    setLineColor(this@MenuFragment.requireContext().getColor(R.color.input_code_disabled))
+                    setTextColor(
+                        this@MenuFragment.requireContext().getColor(R.color.input_code_disabled)
+                    )
+                    setLineColor(
+                        this@MenuFragment.requireContext().getColor(R.color.input_code_disabled)
+                    )
                 }
 
                 val store = StoreManager.getInstance()
                 with(store) {
                     this.gameCode = gameCode
                     player = Player(userName, UUID.randomUUID())
+                    this.userName = binding.username.text.toString()
                     isStarter = false
                 }
 
                 val activity = requireActivity() as MainActivity
                 api.connectToGame(ConnectToGameRequest(gameCode, store.player))
                     .enqueue(object : Callback<BaseResponse> {
-                        override fun onResponse(call: Call<BaseResponse>, response: Response<BaseResponse>) {
+                        override fun onResponse(
+                            call: Call<BaseResponse>,
+                            response: Response<BaseResponse>
+                        ) {
                             if (response.body()!!.code == 0)
                                 activity.openWaitingRoomFragment()
                             else {
@@ -129,6 +150,14 @@ class MenuFragment : Fragment() {
                     })
             }
         }
+
+        binding.username.doAfterTextChanged {
+            binding.createGame.isEnabled = it.toString()
+                .replace("/[ ]*", "")
+                .isNotEmpty()
+        }
+
+        binding.username.setText(StoreManager.getInstance().userName)
     }
 
     companion object {

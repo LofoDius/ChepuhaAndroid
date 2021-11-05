@@ -153,23 +153,6 @@ class WaitingRoomFragment() : Fragment() {
                 DynamicToast.makeError(requireContext(), "Вебсокет сыбался!").show()
                 setupWebSocketConnection()
             }
-
-//            val session = StompClient().connect(getString(R.string.ws_url_connections)).withJsonConversions()
-//            session.use { s ->
-//                val connectionsSub: Flow<Player> =
-//                    s.subscribe(getString(R.string.topic_connections) + gameCode, Player.serializer())
-//                connectionsSub.collect { newPlayer ->
-//                    adapter.addPlayer(newPlayer)
-//                }
-//
-//                val gameStartedSub: Flow<String> = s.subscribeText(getString(R.string.topic_game_started) + gameCode)
-//                gameStartedSub.collect { msg ->
-//                    if (msg == "Started") {
-//                        val activity = requireActivity() as MainActivity
-//                        activity.openEnterAnswerFragment()
-//                    }
-//                }
-//            }
         }
     }
 
